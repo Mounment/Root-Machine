@@ -1,0 +1,32 @@
+<div class="col-lg-3">
+    <div class="panel">
+        <div class="panel-heading">
+            <h3 class="panel-title">主机列表</h3>
+        </div>
+        <div class="panel-body">
+            <div class="list-group bord-no">
+
+                <a onclick="HostListDisplayToggle(this)" class="list-group-item">
+                    <input onclick="SelectGroup(this)" class="form-checkbox form-normal form-primary" type="checkbox">未分组
+                    <span class="badge badge-primary">{{ request.user.bind_hosts.count }}</span>
+                </a>
+                <ol class="hide">
+                    {% for bind_host in request.user.bind_hosts.all %}
+                        <li><input value="{{ bind_host.id }}" select_host="true" class="form-checkbox form-normal form-primary" type="checkbox">{{ bind_host.remote_user.username  }}@{{ bind_host.host.ip_addr}}</li>
+                    {% endfor %}
+                </ol>
+                {% for host_group in request.user.hosts_groups.select_related %}
+                <a onclick="HostListDisplayToggle(this)" class="list-group-item">
+                    <input onclick="SelectGroup(this)" class="form-checkbox form-normal form-primary" type="checkbox">{{ host_group.name }}
+                    <span class="badge badge-primary">{{ host_group.bind_hosts.count }}</span>
+                </a>
+                <ol class="hide">
+                    {% for bind_host in host_group.bind_hosts.all %}
+                        <li><input value="{{ bind_host.id }}" select_host="true" class="form-checkbox form-normal form-primary" type="checkbox">{{ bind_host.remote_user.username  }}@{{ bind_host.host.ip_addr}}</li>
+                    {% endfor %}
+                </ol>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>

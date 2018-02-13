@@ -1,0 +1,117 @@
+
+
+
+<script>
+function SelectFileTransferType(ths) {
+    if($(ths).val() == 'get'){
+        $('#local_file_path').addClass('hide');
+    }else {
+        $('#local_file_path').removeClass('hide');
+    }
+}
+
+
+function HostListDisplayToggle(ths) {
+        $(ths).next().toggleClass('hide');
+    }
+
+    function SelectGroup(ths) {
+        $(ths).parent().next().find('input').prop('checked',$(ths).prop('checked'))
+    }
+
+    function getResult(task_id) {
+        $.getJSON('{% url 'task_result' %}',{'task_id':task_id},function(callback){
+            var all_task_done = true;
+            $.each(callback,function (index,ele) {
+                var li_ele = $("li[bind_host_id='"+ele['id']+"']")
+                li_ele.next().text(ele['result']);
+                $(li_ele.children()[0]).text(ele.status);
+                if (ele.status == 2){
+                    all_task_done = false;
+                }
+            });
+            if(all_task_done){
+                clearInterval(resultRefreshObj);
+                $('#post_task_btn').removeClass('disabled');
+            }
+        });
+    }
+
+    function PostTask(ths,task_type) {
+        var select_host_ids = []
+        $('input[select_host]:checked').each(function () {
+            select_host_ids.push($(this).val())
+        })
+        if(select_host_ids.length == 0){
+            alert('必须选择一台主机');
+            return false;
+        }
+        var cmd_text = $('#cmd_text').val().trim()
+        if(cmd_text.length == 0){
+            alert('请输入命令');
+            return false;
+        }
+
+
+        if(task_type == 'cmd'){
+            var cmd_text = $('#cmd_text').val().trim();
+
+            if(cmd_text.length == 0){
+                alert('必须输入执行的命令');
+                return false;
+            }
+            var task_args= {
+            'select_host_ids':select_host_ids,
+            'task_type':0,//cmd
+            'cmd':cmd_text
+            }
+
+        }
+        else{
+            var file_transfer_type =  $("select[name='file_transfer_type']").val();
+            var local_file_path = $('#local_file_path').val().trim();
+            var remote_file_path = $('#remote_file_path').val().trim();
+            if(file_transfer_type == 'send'){
+                if(local_file_path.length == 0){
+                    alert('必须输入本地文件的路径');
+                    return false;
+                }
+            }
+            if(remote_file_path.length == 0){
+                alert('必须输入远程文件的路径');
+                return false;
+            }
+            var task_args={
+                'select_host_ids':select_host_ids,
+                'task_type':1,
+                'file_transfer_type':file_transfer_type,
+                'local_file_path':local_file_path,
+                'remote_file_path':remote_file_path
+            }
+        }
+
+
+        $(ths).addClass('disabled');
+        $('#task_result_container').empty();
+        $.post(
+            '{% url 'mutitask' %}',
+            {'task_data':JSON.stringify(task_args),
+              'csrfmiddlewaretoken':$('input[name="csrfmiddlewaretoken"]').val()},
+            function(callback){
+                var callback = JSON.parse(callback)
+                $.each(callback.select_hosts,function (index,ele) {
+                    var li_ele = "<li bind_host_id='"+ele['id']+"'>Host:" + ele.bind_host__host__hostname+"("+
+                            ele.bind_host__host__ip_addr +")<span>--------</span></li><pre></pre>";
+                    $('#task_result_container').append(li_ele);
+                });
+
+                //后端定时拿结果
+                 resultRefreshObj = setInterval(function () {
+                        getResult(callback.task_id)
+                    },2000)
+
+            }
+        )
+
+    }
+</script>
